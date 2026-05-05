@@ -206,8 +206,6 @@ runs:
           --cmake-args -DCMAKE_BUILD_TYPE=${{ inputs.cmake-build-type }} \
           --mixin coverage-gcc coverage-pytest compile-commands \
           --base-paths ${{ inputs.base-paths }}
-        mv /etc/nsswitch.conf.bak /etc/nsswitch.conf
-        cat /etc/nsswitch.conf
       shell: bash
 
     - name: Enable network
