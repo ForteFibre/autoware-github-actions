@@ -49,6 +49,10 @@ inputs:
     description: Will use the local mixin repository to avoid rate limits
     default: true
     required: false
+  disable-network:
+    description: Will disable network access while colcon build
+    default: true
+    required: false
   base-paths:
     description: List of base paths to consider for the build
     default: .
@@ -177,17 +181,23 @@ runs:
         colcon mixin update default
       shell: bash
 
+    - name: Disable network
+      if: ${{ inputs.disable-network == 'true' }}
+      run: |
+        # Cannot use unshare inside a Docker container, so we just disable
+        # DNS lookups instead.
+        cat /etc/nsswitch.conf
+        sed -e 's#hosts:\(.*\)dns\(.*\)#hosts:\1\2#g' -i.bak /etc/nsswitch.conf
+        cat /etc/nsswitch.conf
+      shell: bash
+
     - name: Build
       run: |
         . /opt/ros/${{ inputs.rosdistro }}/setup.sh
         if [ -f "${{ inputs.underlay-workspace }}/setup.sh" ]; then
           . ${{ inputs.underlay-workspace }}/setup.sh
         fi
-        # Cannot use unshare inside a Docker container, so we just disable
-        # DNS lookups instead.
-        cat /etc/nsswitch.conf
-        sed -e 's#hosts:\(.*\)dns\(.*\)#hosts:\1\2#g' -i.bak /etc/nsswitch.conf
-        cat /etc/nsswitch.conf
+
         MAKEFLAGS="${{ inputs.makeflags }}"
         echo "MAKEFLAGS=$MAKEFLAGS"  # for debugging
         ${{ inputs.build-pre-command }} colcon build ${{ inputs.colcon-parallel-workers-flag }} \
@@ -200,6 +210,13 @@ runs:
         cat /etc/nsswitch.conf
       shell: bash
 
+    - name: Enable network
+      if: ${{ inputs.disable-network == 'true' }}
+      run: |
+        mv /etc/nsswitch.conf.bak /etc/nsswitch.conf
+        cat /etc/nsswitch.conf
+      shell: bash
+      
     - name: Cache build artifacts
       uses: actions/cache/save@v5
       with:
