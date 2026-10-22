@@ -46,6 +46,7 @@ jobs:
 | makeflags                    | false    | Will be exported as MAKEFLAGS environment variable for colcon build step. e.g. "-j 4"                                   |
 | save-build-cache             | false    | Save `./build` and `./install` to the GitHub Actions cache (default `true`). Only the clang-tidy action restores it.    |
 | ccache                       | false    | Compile through ccache (default `false`). Set `CCACHE_DIR` to keep the cache across jobs, e.g. a Docker volume.         |
+| coverage                     | false    | Build with the `coverage-gcc` and `coverage-pytest` mixins (default `true`).                                            |
 
 ## Outputs
 
