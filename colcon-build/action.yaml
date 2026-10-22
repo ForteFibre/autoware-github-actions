@@ -65,6 +65,10 @@ inputs:
     description: Compile through ccache. Set CCACHE_DIR to keep the cache across jobs, e.g. a Docker volume on a self-hosted runner
     default: false
     required: false
+  coverage:
+    description: Build with the coverage-gcc and coverage-pytest mixins
+    default: true
+    required: false
 
 runs:
   using: composite
@@ -218,6 +222,10 @@ runs:
 
         MAKEFLAGS="${{ inputs.makeflags }}"
         echo "MAKEFLAGS=$MAKEFLAGS"  # for debugging
+        mixins="compile-commands"
+        if [ "${{ inputs.coverage }}" = "true" ]; then
+          mixins="coverage-gcc coverage-pytest $mixins"
+        fi
         if [ "${{ inputs.ccache }}" = "true" ]; then
           # CMake picks up the launcher from the environment on the first configure
           export CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -226,7 +234,7 @@ runs:
           --event-handlers console_cohesion+ \
           --packages-above-and-dependencies ${{ inputs.target-packages }} \
           --cmake-args -DCMAKE_BUILD_TYPE=${{ inputs.cmake-build-type }} \
-          --mixin coverage-gcc coverage-pytest compile-commands \
+          --mixin $mixins \
           --base-paths ${{ inputs.base-paths }}
       shell: bash
 
