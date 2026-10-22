@@ -44,6 +44,8 @@ jobs:
 | build-pre-command            | false    | This command is prepended to the `colcon build` to avoid draining resources.                                            |
 | colcon-parallel-workers-flag | false    | Will be appended to the colcon build command to limit number of packages built in parallel. e.g. "--parallel-workers 3" |
 | makeflags                    | false    | Will be exported as MAKEFLAGS environment variable for colcon build step. e.g. "-j 4"                                   |
+| save-build-cache             | false    | Save `./build` and `./install` to the GitHub Actions cache (default `true`). Only the clang-tidy action restores it.    |
+| ccache                       | false    | Compile through ccache (default `false`). Set `CCACHE_DIR` to keep the cache across jobs, e.g. a Docker volume.         |
 
 ## Outputs
 

@@ -57,6 +57,14 @@ inputs:
     description: List of base paths to consider for the build
     default: .
     required: false
+  save-build-cache:
+    description: Save ./build and ./install to the GitHub Actions cache (only the clang-tidy action restores it)
+    default: true
+    required: false
+  ccache:
+    description: Compile through ccache. Set CCACHE_DIR to keep the cache across jobs, e.g. a Docker volume on a self-hosted runner
+    default: false
+    required: false
 
 runs:
   using: composite
@@ -181,6 +189,16 @@ runs:
         colcon mixin update default
       shell: bash
 
+    - name: Set up ccache
+      if: ${{ inputs.ccache == 'true' }}
+      run: |
+        # before "Disable network": installing needs the network
+        command -v ccache || { sudo apt-get -yqq update && sudo apt-get -yqq install ccache; }
+        # hash paths relative to the checkout so that the cache survives a different checkout path
+        echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+        ccache --zero-stats
+      shell: bash
+
     - name: Disable network
       if: ${{ inputs.disable-network == 'true' }}
       run: |
@@ -200,6 +218,10 @@ runs:
 
         MAKEFLAGS="${{ inputs.makeflags }}"
         echo "MAKEFLAGS=$MAKEFLAGS"  # for debugging
+        if [ "${{ inputs.ccache }}" = "true" ]; then
+          # CMake picks up the launcher from the environment on the first configure
+          export CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache
+        fi
         ${{ inputs.build-pre-command }} colcon build ${{ inputs.colcon-parallel-workers-flag }} \
           --event-handlers console_cohesion+ \
           --packages-above-and-dependencies ${{ inputs.target-packages }} \
@@ -215,7 +237,13 @@ runs:
         cat /etc/nsswitch.conf
       shell: bash
       
+    - name: Show ccache stats
+      if: ${{ always() && inputs.ccache == 'true' }}
+      run: ccache --show-stats --verbose
+      shell: bash
+
     - name: Cache build artifacts
+      if: ${{ inputs.save-build-cache == 'true' }}
       uses: actions/cache/save@v5
       with:
         path: |
